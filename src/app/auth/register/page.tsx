@@ -19,20 +19,13 @@ export default function RegisterPage() {
     setError('')
     const supabase = createClient()
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
-    if (signUpError || !data.user) {
-      setError(signUpError?.message ?? 'Något gick fel.')
-      setLoading(false)
-      return
-    }
-
-    // Skapa profil
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({ id: data.user.id, name, email })
-
-    if (profileError) {
-      setError('Kunde inte skapa profil. Försök igen.')
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    })
+    if (signUpError) {
+      setError(signUpError.message ?? 'Något gick fel.')
       setLoading(false)
       return
     }
