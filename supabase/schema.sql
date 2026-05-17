@@ -12,6 +12,33 @@ alter table profiles enable row level security;
 create policy "Users can manage own profile"
   on profiles for all using (auth.uid() = id);
 
+-- Trigger: skapa profil automatiskt vid registrering
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, name, email)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    new.email
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create or replace trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Backfill: skapa profiler för befintliga användare som saknar en
+insert into public.profiles (id, name, email)
+select
+  id,
+  coalesce(raw_user_meta_data->>'name', split_part(email, '@', 1)),
+  email
+from auth.users
+where id not in (select id from public.profiles);
+
 -- Leverantörer
 create table suppliers (
   id uuid default gen_random_uuid() primary key,

@@ -37,7 +37,7 @@ export default function NewContactPage() {
     })
 
     if (error) {
-      setError(`Fel: ${error.message} (${error.code})`)
+      setError('Kunde inte spara kontakten.')
       setLoading(false)
       return
     }
