@@ -13,12 +13,22 @@ type Row = {
   city: string
   postal_code: string
   notes: string
+  birthday: string // DD/MM or DD/MM/YYYY
 }
 
-const COLUMNS = ['name', 'email', 'phone', 'address', 'city', 'postal_code', 'notes']
-const COLUMN_LABELS: Record<string, string> = {
-  name: 'Namn', email: 'E-post', phone: 'Telefon',
-  address: 'Adress', city: 'Stad', postal_code: 'Postnummer', notes: 'Anteckningar',
+type ParsedBirthday = { day: number; month: number; year: number | null } | null
+
+const COLUMNS = ['name', 'email', 'phone', 'address', 'city', 'postal_code', 'notes', 'birthday']
+
+function parseBirthday(raw: string): ParsedBirthday {
+  if (!raw) return null
+  const m = raw.match(/^(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{4}))?$/)
+  if (!m) return null
+  const day = parseInt(m[1])
+  const month = parseInt(m[2])
+  const year = m[3] ? parseInt(m[3]) : null
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null
+  return { day, month, year }
 }
 
 function parseCSV(text: string): Row[] {
@@ -37,6 +47,9 @@ function parseCSV(text: string): Row[] {
       .replace('stad', 'city')
       .replace('postnummer', 'postal_code')
       .replace('anteckningar', 'notes')
+      .replace('födelsedag', 'birthday')
+      .replace('fodelsedag', 'birthday')
+      .replace('birthday', 'birthday')
   )
 
   return lines.slice(1).map(line => {
@@ -53,6 +66,7 @@ function parseCSV(text: string): Row[] {
       city: row.city ?? '',
       postal_code: row.postal_code ?? '',
       notes: row.notes ?? '',
+      birthday: row.birthday ?? '',
     }
   }).filter(r => r.name.length > 0)
 }
@@ -95,7 +109,7 @@ export default function ImportContactsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth/login'); return }
 
-    const { error } = await supabase.from('contacts').insert(
+    const { data: inserted, error } = await supabase.from('contacts').insert(
       rows.map(r => ({
         user_id: user.id,
         name: r.name,
@@ -106,13 +120,33 @@ export default function ImportContactsPage() {
         postal_code: r.postal_code || null,
         notes: r.notes || null,
       }))
-    )
+    ).select()
 
-    if (error) {
+    if (error || !inserted) {
       setError('Något gick fel vid importen.')
       setImporting(false)
       return
     }
+
+    // Skapa födelsedag-occasions för de som har birthday-kolumn
+    const birthdayOccasions = inserted.flatMap((contact, i) => {
+      const bd = parseBirthday(rows[i]?.birthday ?? '')
+      if (!bd) return []
+      return [{
+        user_id: user.id,
+        contact_id: contact.id,
+        type: 'birthday',
+        day: bd.day,
+        month: bd.month,
+        year: bd.year,
+        recurring: true,
+      }]
+    })
+
+    if (birthdayOccasions.length > 0) {
+      await supabase.from('occasions').insert(birthdayOccasions)
+    }
+
     setDone(true)
     setTimeout(() => router.push('/dashboard/contacts'), 1500)
   }
@@ -150,10 +184,11 @@ export default function ImportContactsPage() {
             Förväntat format
           </p>
           <p className="text-xs text-[var(--ink-light)] font-mono bg-[var(--parchment)] px-4 py-3 border border-[var(--parchment-dark)]">
-            name,email,phone,address,city,postal_code,notes
+            name,email,phone,address,city,postal_code,notes,birthday
           </p>
           <p className="text-xs text-[var(--ink-light)] mt-3" style={{ fontFamily: 'var(--font-inter)' }}>
-            Kolumnnamnen kan vara på svenska (Namn, E-post, Telefon...). Bara Namn är obligatoriskt.
+            Kolumnnamnen kan vara på svenska (Namn, E-post, Telefon, Födelsedag...). Bara Namn är obligatoriskt.
+            Födelsedag anges som <span className="font-mono">DD/MM</span> eller <span className="font-mono">DD/MM/ÅÅÅÅ</span>.
           </p>
         </div>
 
@@ -195,7 +230,7 @@ export default function ImportContactsPage() {
               <table className="w-full text-xs" style={{ fontFamily: 'var(--font-inter)' }}>
                 <thead className="bg-[var(--parchment)] border-b border-[var(--parchment-dark)]">
                   <tr>
-                    {['Namn', 'E-post', 'Telefon', 'Stad', ''].map(h => (
+                    {['Namn', 'E-post', 'Telefon', 'Stad', 'Födelsedag', ''].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-[var(--ink-light)] tracking-widest uppercase font-normal">
                         {h}
                       </th>
@@ -209,6 +244,7 @@ export default function ImportContactsPage() {
                       <td className="px-4 py-3 text-[var(--ink-light)]">{row.email}</td>
                       <td className="px-4 py-3 text-[var(--ink-light)]">{row.phone}</td>
                       <td className="px-4 py-3 text-[var(--ink-light)]">{row.city}</td>
+                      <td className="px-4 py-3 text-[var(--ink-light)]">{row.birthday}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => removeRow(i)}
                           className="text-[var(--terracotta)] hover:opacity-70 transition-opacity">
