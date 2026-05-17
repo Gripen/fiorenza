@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function Home() {
   return (
     <main className="flex flex-col min-h-screen">
@@ -16,9 +18,12 @@ export default function Home() {
         >
           <a href="#" className="hover:text-[var(--terracotta)] transition-colors">Hur det fungerar</a>
           <a href="#" className="hover:text-[var(--terracotta)] transition-colors">Priser</a>
-          <a href="#" className="bg-[var(--burgundy)] text-[var(--parchment)] px-5 py-2 hover:bg-[var(--burgundy-light)] transition-colors">
+          <Link href="/auth/login" className="hover:text-[var(--terracotta)] transition-colors">
+            Logga in
+          </Link>
+          <Link href="/auth/register" className="bg-[var(--burgundy)] text-[var(--parchment)] px-5 py-2 hover:bg-[var(--burgundy-light)] transition-colors">
             Kom igång
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -46,20 +51,20 @@ export default function Home() {
           att skicka en bukett eller en personlig hälsning till precis rätt person.
         </p>
         <div className="flex gap-4 flex-wrap justify-center">
-          <a
-            href="#"
+          <Link
+            href="/auth/register"
             className="bg-[var(--terracotta)] text-[var(--parchment)] px-8 py-4 text-sm tracking-widest uppercase hover:bg-[var(--terracotta-dark)] transition-colors"
             style={{ fontFamily: "var(--font-inter)" }}
           >
             Skapa konto
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            href="/auth/login"
             className="border border-[var(--ink-light)] text-[var(--ink)] px-8 py-4 text-sm tracking-widest uppercase hover:border-[var(--terracotta)] hover:text-[var(--terracotta)] transition-colors"
             style={{ fontFamily: "var(--font-inter)" }}
           >
-            Se hur det fungerar
-          </a>
+            Logga in
+          </Link>
         </div>
       </section>
 
