@@ -44,7 +44,7 @@ export default async function DashboardPage() {
 
         <div className="grid md:grid-cols-3 gap-4">
           {[
-            { label: 'Kontakter', desc: 'Lägg till och hantera dina kontakter', href: '#', icon: '✦' },
+            { label: 'Kontakter', desc: 'Lägg till och hantera dina kontakter', href: '/dashboard/contacts', icon: '✦' },
             { label: 'Bemärkelsedagar', desc: 'Håll koll på alla viktiga datum', href: '#', icon: '❧' },
             { label: 'Ordrar', desc: 'Se dina beställningar och fakturaunderlag', href: '#', icon: '✉' },
           ].map(item => (
